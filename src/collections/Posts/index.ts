@@ -9,6 +9,18 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
 
+// Import your custom Groq AI feature
+import { GroqAIFeature } from '@/features/GroqAI/feature.server'
+
+// 👇 Import typography plugin features
+import {
+  TextColorFeature,
+  TextSizeFeature,
+  TextLetterSpacingFeature,
+  TextLineHeightFeature,
+  TextFontFamilyFeature,
+} from 'payload-lexical-typography'
+
 import { authenticated } from '../../access/authenticated'
 import { authenticatedOrPublished } from '../../access/authenticatedOrPublished'
 import { Banner } from '../../blocks/Banner/config'
@@ -35,9 +47,6 @@ export const Posts: CollectionConfig<'posts'> = {
     read: authenticatedOrPublished,
     update: authenticated,
   },
-  // This config controls what's populated by default when a post is referenced
-  // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
-  // Type safe if the collection slug generic is passed to `CollectionConfig` - `CollectionConfig<'posts'>
   defaultPopulate: {
     title: true,
     slug: true,
@@ -90,6 +99,43 @@ export const Posts: CollectionConfig<'posts'> = {
                     ...rootFeatures,
                     HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
                     BlocksFeature({ blocks: [Banner, Code, MediaBlock] }),
+
+                    // 👇 Add typography features
+                    TextColorFeature({
+                      colors: [
+                        '#000000',
+                        '#FFFFFF',
+                        '#FF0000',
+                        '#00FF00',
+                        '#0000FF',
+                        '#FFA500',
+                        '#800080',
+                        '#FFC0CB',
+                        '#A52A2A',
+                        '#808080',
+                      ],
+                    }),
+                    TextSizeFeature({
+                      sizes: [
+                        { label: 'Small', value: '12px' },
+                        { label: 'Normal', value: '16px' },
+                        { label: 'Large', value: '20px' },
+                        { label: 'Huge', value: '24px' },
+                      ],
+                    }),
+                    TextLetterSpacingFeature(),
+                    TextLineHeightFeature(),
+                    TextFontFamilyFeature({
+                      fontFamilies: [
+                        { label: 'System Default', value: 'sans-serif' },
+                        { label: 'Serif', value: 'Georgia, serif' },
+                        { label: 'Monospace', value: 'Courier New, monospace' },
+                        { label: 'Arial', value: 'Arial, sans-serif' },
+                        { label: 'Helvetica', value: 'Helvetica, sans-serif' },
+                      ],
+                    }),
+
+                    GroqAIFeature(),
                     FixedToolbarFeature(),
                     InlineToolbarFeature(),
                     HorizontalRuleFeature(),
@@ -147,13 +193,9 @@ export const Posts: CollectionConfig<'posts'> = {
             MetaImageField({
               relationTo: 'media',
             }),
-
             MetaDescriptionField({}),
             PreviewField({
-              // if the `generateUrl` function is configured
               hasGenerateFn: true,
-
-              // field paths to match the target field for data
               titlePath: 'meta.title',
               descriptionPath: 'meta.description',
             }),
@@ -190,9 +232,6 @@ export const Posts: CollectionConfig<'posts'> = {
       hasMany: true,
       relationTo: 'users',
     },
-    // This field is only used to populate the user data via the `populateAuthors` hook
-    // This is because the `user` collection has access control locked to protect user privacy
-    // GraphQL will also not return mutated user data that differs from the underlying schema
     {
       name: 'populatedAuthors',
       type: 'array',
@@ -224,7 +263,7 @@ export const Posts: CollectionConfig<'posts'> = {
   versions: {
     drafts: {
       autosave: {
-        interval: 100, // We set this interval for optimal live preview
+        interval: 100,
       },
       schedulePublish: true,
     },

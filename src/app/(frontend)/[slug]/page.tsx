@@ -108,6 +108,9 @@ const queryPageBySlug = cache(async ({ slug }: { slug: string }) => {
       },
     },
   })
+  const page = result.docs?.[0] || null
 
+  // 👇 Log the full page data to the server terminal
+  console.log(`Page data for "${slug}":`, JSON.stringify(page, null, 2))
   return result.docs?.[0] || null
 })

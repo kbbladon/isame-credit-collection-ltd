@@ -72,6 +72,8 @@ export interface Config {
     media: Media;
     categories: Category;
     users: User;
+    surveys: Survey;
+    'survey-responses': SurveyResponse;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -94,6 +96,8 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    surveys: SurveysSelect<false> | SurveysSelect<true>;
+    'survey-responses': SurveyResponsesSelect<false> | SurveyResponsesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -112,12 +116,17 @@ export interface Config {
   globals: {
     header: Header;
     footer: Footer;
+    'site-settings': SiteSetting;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: null;
+  widgets: {
+    collections: CollectionsWidget;
+  };
   user: User;
   jobs: {
     tasks: {
@@ -156,7 +165,7 @@ export interface Page {
   id: string;
   title: string;
   hero: {
-    type: 'none' | 'highImpact' | 'mediumImpact' | 'lowImpact';
+    type: 'none' | 'highImpact' | 'mediumImpact' | 'lowImpact' | 'video' | 'slideshow';
     richText?: {
       root: {
         type: string;
@@ -197,8 +206,99 @@ export interface Page {
         }[]
       | null;
     media?: (string | null) | Media;
+    videoType?: ('youtube' | 'mp4') | null;
+    youtubeUrl?: string | null;
+    mp4Video?: (string | null) | Media;
+    /**
+     * Shows while video loads. For YouTube, if not provided, video thumbnail will be used.
+     */
+    placeholderImage?: (string | null) | Media;
+    /**
+     * Enter a CSS color (e.g., rgba(0,0,0,0.5), #00000080, or a hex). Leave empty for no overlay.
+     */
+    overlayColor?: string | null;
+    videoHeight?: ('min-h-screen' | 'min-h-[80vh]' | 'min-h-[60vh]' | 'min-h-[40vh]') | null;
+    contentAlignment?: ('left' | 'center' | 'right') | null;
+    animationPreset?: ('fade' | 'slide-left' | 'slide-right' | 'slide-up' | 'skew') | null;
+    linkAlignment?: ('left' | 'center' | 'right') | null;
+    linkGap?: ('2' | '4' | '6') | null;
+    /**
+     * Add images for the slideshow.
+     */
+    slideshowImages?:
+      | {
+          image: string | Media;
+          /**
+           * Optional caption for this slide.
+           */
+          caption?: string | null;
+          hasLink?: boolean | null;
+          link?: {
+            type?: ('reference' | 'custom') | null;
+            reference?:
+              | ({
+                  relationTo: 'pages';
+                  value: string | Page;
+                } | null)
+              | ({
+                  relationTo: 'posts';
+                  value: string | Post;
+                } | null);
+            url?: string | null;
+            label: string;
+            newTab?: boolean | null;
+          };
+          id?: string | null;
+        }[]
+      | null;
+    slideshowEffect?: ('slide' | 'fade' | 'cube' | 'coverflow' | 'flip') | null;
+    /**
+     * Autoplay speed in milliseconds (0 to disable).
+     */
+    slideshowSpeed?: number | null;
+    slideshowNavigation?: boolean | null;
+    slideshowPagination?: boolean | null;
+    /**
+     * Use different images on mobile devices.
+     */
+    slideshowUseMobileImages?: boolean | null;
+    slideshowMobileImages?:
+      | {
+          image: string | Media;
+          caption?: string | null;
+          hasLink?: boolean | null;
+          link?: {
+            type?: ('reference' | 'custom') | null;
+            reference?:
+              | ({
+                  relationTo: 'pages';
+                  value: string | Page;
+                } | null)
+              | ({
+                  relationTo: 'posts';
+                  value: string | Post;
+                } | null);
+            url?: string | null;
+            label: string;
+            newTab?: boolean | null;
+          };
+          id?: string | null;
+        }[]
+      | null;
+    slideshowMobileHeight?: ('min-h-screen' | 'min-h-[80vh]' | 'min-h-[60vh]' | 'min-h-[40vh]') | null;
   };
-  layout: (CallToActionBlock | ContentBlock | MediaBlock | ArchiveBlock | FormBlock)[];
+  layout: (
+    | CallToActionBlock
+    | ContentBlock
+    | {
+        media: string | Media;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'mediaBlock';
+      }
+    | ArchiveBlock
+    | FormBlock
+  )[];
   meta?: {
     title?: string | null;
     /**
@@ -417,6 +517,7 @@ export interface Category {
 export interface User {
   id: string;
   name?: string | null;
+  role: 'admin' | 'editor';
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -533,16 +634,6 @@ export interface ContentBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'content';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "MediaBlock".
- */
-export interface MediaBlock {
-  media: string | Media;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'mediaBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -780,6 +871,60 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "surveys".
+ */
+export interface Survey {
+  id: string;
+  title: string;
+  description?: string | null;
+  questions: {
+    questionText: string;
+    questionType: 'text' | 'textarea' | 'rating' | 'yesno';
+    required?: boolean | null;
+    id?: string | null;
+  }[];
+  thankYouMessage?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "survey-responses".
+ */
+export interface SurveyResponse {
+  id: string;
+  survey: string | Survey;
+  answers:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  displayAsTestimonial?: boolean | null;
+  testimonialName?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -989,6 +1134,14 @@ export interface PayloadLockedDocument {
         value: string | User;
       } | null)
     | ({
+        relationTo: 'surveys';
+        value: string | Survey;
+      } | null)
+    | ({
+        relationTo: 'survey-responses';
+        value: string | SurveyResponse;
+      } | null)
+    | ({
         relationTo: 'redirects';
         value: string | Redirect;
       } | null)
@@ -1077,6 +1230,56 @@ export interface PagesSelect<T extends boolean = true> {
               id?: T;
             };
         media?: T;
+        videoType?: T;
+        youtubeUrl?: T;
+        mp4Video?: T;
+        placeholderImage?: T;
+        overlayColor?: T;
+        videoHeight?: T;
+        contentAlignment?: T;
+        animationPreset?: T;
+        linkAlignment?: T;
+        linkGap?: T;
+        slideshowImages?:
+          | T
+          | {
+              image?: T;
+              caption?: T;
+              hasLink?: T;
+              link?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    label?: T;
+                    newTab?: T;
+                  };
+              id?: T;
+            };
+        slideshowEffect?: T;
+        slideshowSpeed?: T;
+        slideshowNavigation?: T;
+        slideshowPagination?: T;
+        slideshowUseMobileImages?: T;
+        slideshowMobileImages?:
+          | T
+          | {
+              image?: T;
+              caption?: T;
+              hasLink?: T;
+              link?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    label?: T;
+                    newTab?: T;
+                  };
+              id?: T;
+            };
+        slideshowMobileHeight?: T;
       };
   layout?:
     | T
@@ -1336,6 +1539,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  role?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1352,6 +1556,38 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "surveys_select".
+ */
+export interface SurveysSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  questions?:
+    | T
+    | {
+        questionText?: T;
+        questionType?: T;
+        required?: T;
+        id?: T;
+      };
+  thankYouMessage?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "survey-responses_select".
+ */
+export interface SurveyResponsesSelect<T extends boolean = true> {
+  survey?: T;
+  answers?: T;
+  displayAsTestimonial?: T;
+  testimonialName?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1651,9 +1887,62 @@ export interface Header {
           url?: string | null;
           label: string;
         };
+        children?:
+          | {
+              link: {
+                type?: ('reference' | 'custom') | null;
+                newTab?: boolean | null;
+                reference?:
+                  | ({
+                      relationTo: 'pages';
+                      value: string | Page;
+                    } | null)
+                  | ({
+                      relationTo: 'posts';
+                      value: string | Post;
+                    } | null);
+                url?: string | null;
+                label: string;
+              };
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
+  ctaButton: {
+    label: string;
+    url: string;
+  };
+  /**
+   * Enter any valid CSS color (hex, rgb, rgba). Leave empty for transparent.
+   */
+  backgroundColor?: string | null;
+  /**
+   * Main text color for navigation and icons (hex, rgb, etc.).
+   */
+  textColor?: string | null;
+  /**
+   * Color when hovering over navigation links.
+   */
+  hoverColor?: string | null;
+  stickyHeader?: boolean | null;
+  /**
+   * Header starts transparent and becomes solid after scrolling.
+   */
+  transparentOnTop?: boolean | null;
+  /**
+   * Number of pixels to scroll before header becomes solid.
+   */
+  scrollThreshold?: number | null;
+  /**
+   * Blur effect on the header background (0 = no blur).
+   */
+  blurIntensity?: number | null;
+  /**
+   * If enabled, the header will be fixed over the hero area. Otherwise, it will sit above it.
+   */
+  overlayHero?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1688,6 +1977,17 @@ export interface Footer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: string;
+  logo: string | Media;
+  favicon: string | Media;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -1703,8 +2003,36 @@ export interface HeaderSelect<T extends boolean = true> {
               url?: T;
               label?: T;
             };
+        children?:
+          | T
+          | {
+              link?:
+                | T
+                | {
+                    type?: T;
+                    newTab?: T;
+                    reference?: T;
+                    url?: T;
+                    label?: T;
+                  };
+              id?: T;
+            };
         id?: T;
       };
+  ctaButton?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+      };
+  backgroundColor?: T;
+  textColor?: T;
+  hoverColor?: T;
+  stickyHeader?: T;
+  transparentOnTop?: T;
+  scrollThreshold?: T;
+  blurIntensity?: T;
+  overlayHero?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -1734,6 +2062,27 @@ export interface FooterSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  logo?: T;
+  favicon?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "collections_widget".
+ */
+export interface CollectionsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSchedulePublish".
  */
 export interface TaskSchedulePublish {
@@ -1753,6 +2102,16 @@ export interface TaskSchedulePublish {
     user?: (string | null) | User;
   };
   output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaBlock".
+ */
+export interface MediaBlock {
+  media: string | Media;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'mediaBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

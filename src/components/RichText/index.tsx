@@ -1,8 +1,10 @@
+import React from 'react'
 import { MediaBlock } from '@/blocks/MediaBlock/Component'
 import {
   DefaultNodeTypes,
   SerializedBlockNode,
   SerializedLinkNode,
+  SerializedTextNode,
   type DefaultTypedEditorState,
 } from '@payloadcms/richtext-lexical'
 import {
@@ -35,9 +37,54 @@ const internalDocToHref = ({ linkNode }: { linkNode: SerializedLinkNode }) => {
   return relationTo === 'posts' ? `/posts/${slug}` : `/${slug}`
 }
 
+// Helper to convert CSS string to React style object
+const styleStringToObject = (styleString: string): React.CSSProperties => {
+  if (!styleString) return {}
+  const style: Record<string, string> = {}
+  styleString.split(';').forEach((rule) => {
+    const [key, val] = rule.split(':').map((s) => s.trim())
+    if (key && val) {
+      // Convert kebab-case to camelCase
+      const camelKey = key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+      style[camelKey] = val
+    }
+  })
+  return style as React.CSSProperties
+}
+
 const jsxConverters: JSXConvertersFunction<NodeTypes> = ({ defaultConverters }) => ({
   ...defaultConverters,
   ...LinkJSXConverter({ internalDocToHref }),
+
+  // Custom text converter to apply inline styles (color, font size, etc.)
+  text: (props) => {
+    const { node } = props as { node: SerializedTextNode }
+    const DefaultTextConverter = defaultConverters.text
+
+    // No style: use default converter
+    if (!node.style) {
+      if (typeof DefaultTextConverter === 'function') {
+        return DefaultTextConverter(props)
+      }
+      return <span>{node.text}</span>
+    }
+
+    // Has style: parse to object and apply via cloneElement
+    const styleObj = styleStringToObject(node.style)
+
+    if (typeof DefaultTextConverter === 'function') {
+      const defaultElement = DefaultTextConverter(props)
+      if (React.isValidElement(defaultElement)) {
+        // Clone element with style, using type assertion to bypass strict props
+        return React.cloneElement(defaultElement as React.ReactElement<any>, { style: styleObj })
+      }
+    }
+
+    // Fallback if no default converter
+    return <span style={styleObj}>{node.text}</span>
+  },
+
+  // Block converters (unchanged)
   blocks: {
     banner: ({ node }) => <BannerBlock className="col-start-2 mb-4" {...node.fields} />,
     mediaBlock: ({ node }) => (
