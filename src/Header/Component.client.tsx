@@ -10,7 +10,7 @@ import { Logo } from '@/components/Logo/Logo'
 import { HeaderNav } from './Nav'
 
 interface HeaderClientProps {
-  data: Header
+  data: Header | null
   logoUrl?: string | null
 }
 
@@ -21,6 +21,9 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data, logoUrl }) => 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [language, setLanguage] = useState<'en' | 'es'>('en')
   const [isScrolled, setIsScrolled] = useState(false)
+
+  // Guard against missing data
+  if (!data) return null
 
   // Admin settings with defaults
   const stickyEnabled = data.stickyHeader ?? true
